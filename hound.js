@@ -51,25 +51,29 @@ Hound.prototype.watch = function(src) {
   }
   self.watchers[src] = watchFn(src, function(event, filename) {
     if (fs.existsSync(src)) {
-      stats = fs.statSync(src)
-      if (stats.isFile()) {
-        if (lastChange === null || stats.mtime.getTime() > lastChange)
-          self.emit('change', src, stats)
-        lastChange = stats.mtime.getTime()
-      } else if (stats.isDirectory()) {
-        // Check if the dir is new
-        if (self.watchers[src] === undefined) {
-          self.emit('create', src, stats)
-        }
-        // Check files to see if there are any new files
-        var dirFiles = fs.readdirSync(src)
-        for (var i = 0, len = dirFiles.length; i < len; i++) {
-          var file = src + path.sep + dirFiles[i]
-          if (self.watchers[file] === undefined) {
-            self.watch(file)
-            self.emit('create', file, fs.statSync(file))
+      try {
+        stats = fs.statSync(src)
+        if (stats.isFile()) {
+          if (lastChange === null || stats.mtime.getTime() > lastChange)
+            self.emit('change', src, stats)
+          lastChange = stats.mtime.getTime()
+        } else if (stats.isDirectory()) {
+          // Check if the dir is new
+          if (self.watchers[src] === undefined) {
+            self.emit('create', src, stats)
+          }
+          // Check files to see if there are any new files
+          var dirFiles = fs.readdirSync(src)
+          for (var i = 0, len = dirFiles.length; i < len; i++) {
+            var file = src + path.sep + dirFiles[i]
+            if (self.watchers[file] === undefined) {
+              self.watch(file)
+              self.emit('create', file, fs.statSync(file))
+            }
           }
         }
+      } catch (err) {
+        console.error(err);
       }
     } else {
       self.unwatch(src)
